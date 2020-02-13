@@ -107,20 +107,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-        /*
-        imageCapture.takePicture(executor, object : ImageCapture.OnImageCapturedCallback() {
-            override fun onCaptureSuccess(image: ImageProxy) {
-                super.onCaptureSuccess(image)
-
-            }
-            override fun onError(exception: ImageCaptureException) {
-                val msg = "Photo capture failed: ${exception.message}"
-                previewView.post {
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
-                }
-            }
-        })
-        */
     }
 
     private fun startCamera() {
@@ -153,6 +139,7 @@ class MainActivity : AppCompatActivity() {
             cameraControl = camera.cameraControl
             cameraInfo = camera.cameraInfo
             setTorchStateObserver()
+            setZoomStateObserver()
         }, ContextCompat.getMainExecutor(this))
     }
 
@@ -173,6 +160,15 @@ class MainActivity : AppCompatActivity() {
                     )
                 )
             }
+        })
+    }
+
+    private fun setZoomStateObserver() {
+        cameraInfo.zoomState.observe(this, Observer { state ->
+            // state.linearZoom
+            // state.zoomRatio
+            // state.maxZoomRatio
+            // state.minZoomRatio
         })
     }
 

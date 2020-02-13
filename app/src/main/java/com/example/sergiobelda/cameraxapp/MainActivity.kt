@@ -91,21 +91,36 @@ class MainActivity : AppCompatActivity() {
             FILENAME,
             PHOTO_EXTENSION
         )
-        imageCapture.takePicture(file, executor, object : ImageCapture.OnImageSavedCallback {
-            override fun onImageSaved(file: File) {
+        val outputFileOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+        imageCapture.takePicture(outputFileOptions, executor, object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                 val msg = "Photo capture succeeded: ${file.absolutePath}"
                 previewView.post {
                     Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                 }
             }
 
-            override fun onError(imageCaptureError: Int, message: String, cause: Throwable?) {
-                val msg = "Photo capture failed: $message"
+            override fun onError(exception: ImageCaptureException) {
+                val msg = "Photo capture failed: ${exception.message}"
                 previewView.post {
                     Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                 }
             }
         })
+        /*
+        imageCapture.takePicture(executor, object : ImageCapture.OnImageCapturedCallback() {
+            override fun onCaptureSuccess(image: ImageProxy) {
+                super.onCaptureSuccess(image)
+
+            }
+            override fun onError(exception: ImageCaptureException) {
+                val msg = "Photo capture failed: ${exception.message}"
+                previewView.post {
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+        })
+        */
     }
 
     private fun startCamera() {
@@ -113,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             setTargetAspectRatio(AspectRatio.RATIO_16_9)
             setTargetRotation(previewView.display.rotation)
         }.build()
-        imagePreview.previewSurfaceProvider = previewView.previewSurfaceProvider
+        imagePreview.setSurfaceProvider(previewView.previewSurfaceProvider)
 
         imageAnalysis = ImageAnalysis.Builder().apply {
             setImageQueueDepth(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)

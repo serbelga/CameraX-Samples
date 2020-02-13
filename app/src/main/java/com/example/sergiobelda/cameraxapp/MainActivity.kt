@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity() {
             // state.zoomRatio
             // state.maxZoomRatio
             // state.minZoomRatio
+            Log.d(TAG, "${state.linearZoom}")
         })
     }
 

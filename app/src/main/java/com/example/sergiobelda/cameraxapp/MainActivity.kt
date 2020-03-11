@@ -123,6 +123,7 @@ class MainActivity : AppCompatActivity() {
 
         imageCapture = ImageCapture.Builder().apply {
             setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            setFlashMode(ImageCapture.FLASH_MODE_AUTO)
         }.build()
 
         val cameraSelector =

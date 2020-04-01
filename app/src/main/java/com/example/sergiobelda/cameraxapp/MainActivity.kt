@@ -101,6 +101,7 @@ class MainActivity : AppCompatActivity() {
                             } else {
                                 recordVideo()
                                 it.isSelected = true
+                                recording = true
                             }
                         }
                     }
@@ -134,7 +135,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-        recording = true
     }
 
     private fun toggleTorch() {

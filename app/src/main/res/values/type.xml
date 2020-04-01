@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <style name="CameraXApp.Body2" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="fontFamily">@font/cabin_medium</item>
+    </style>
+    <style name="CameraXApp.Tab" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="fontFamily">@font/cabin_medium</item>
+        <item name="textAllCaps">true</item>
+    </style>
+</resources>

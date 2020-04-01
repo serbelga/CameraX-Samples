@@ -1,6 +1,7 @@
 package com.example.sergiobelda.cameraxapp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
@@ -9,12 +10,13 @@ import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.camera.core.*
+import androidx.camera.core.impl.VideoCaptureConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import com.example.sergiobelda.cameraxapp.databinding.MainActivityBinding
+import com.google.android.material.tabs.TabLayout
 import com.google.common.util.concurrent.ListenableFuture
 import java.io.File
 import java.nio.ByteBuffer
@@ -25,8 +27,9 @@ import java.util.concurrent.TimeUnit
 
 private const val REQUEST_CODE_PERMISSIONS = 10
 
-private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
 
+@SuppressLint("RestrictedApi")
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: MainActivityBinding
 
@@ -37,6 +40,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var imageAnalysis: ImageAnalysis
 
     private lateinit var imageCapture: ImageCapture
+
+    private lateinit var videoCapture: VideoCapture
 
     private lateinit var previewView: PreviewView
 
@@ -50,10 +55,12 @@ class MainActivity : AppCompatActivity() {
 
     private var linearZoom = 0f
 
+    private var recording = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = DataBindingUtil.setContentView(this, R.layout.main_activity)
-        binding.lifecycleOwner = this
+        binding = MainActivityBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         previewView = binding.previewView
 
@@ -69,12 +76,65 @@ class MainActivity : AppCompatActivity() {
         }
 
         outputDirectory = getOutputDirectory(this)
+
         binding.cameraCaptureButton.setOnClickListener {
             takePicture()
         }
+        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    PHOTO -> {
+                        binding.cameraCaptureButton.setOnClickListener {
+                            takePicture()
+                        }
+                    }
+                    VIDEO -> {
+                        binding.cameraCaptureButton.setOnClickListener {
+                            if (recording) {
+                                videoCapture.stopRecording()
+                                it.isSelected = false
+                                recording = false
+                            } else {
+                                recordVideo()
+                                it.isSelected = true
+                                recording = true
+                            }
+                        }
+                    }
+                }
+            }
+
+        })
         binding.cameraTorchButton.setOnClickListener {
             toggleTorch()
         }
+    }
+
+    private fun recordVideo() {
+        val file = createFile(
+            outputDirectory,
+            FILENAME,
+            VIDEO_EXTENSION
+        )
+        videoCapture.startRecording(file, executor, object : VideoCapture.OnVideoSavedCallback {
+            override fun onVideoSaved(file: File) {
+                val msg = "Video capture succeeded: ${file.absolutePath}"
+                previewView.post {
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+                val msg = "Video capture failed: $message"
+                previewView.post {
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+        })
     }
 
     private fun toggleTorch() {
@@ -126,6 +186,10 @@ class MainActivity : AppCompatActivity() {
             setFlashMode(ImageCapture.FLASH_MODE_AUTO)
         }.build()
 
+        videoCapture = VideoCaptureConfig.Builder().apply {
+            setTargetAspectRatio(AspectRatio.RATIO_16_9)
+        }.build()
+
         val cameraSelector =
             CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
         cameraProviderFuture.addListener(Runnable {
@@ -134,8 +198,9 @@ class MainActivity : AppCompatActivity() {
                 this,
                 cameraSelector,
                 imagePreview,
-                imageAnalysis,
-                imageCapture
+                // imageAnalysis,
+                imageCapture,
+                videoCapture
             )
             cameraControl = camera.cameraControl
             cameraInfo = camera.cameraInfo
@@ -259,6 +324,10 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val PHOTO_EXTENSION = ".jpg"
+        private const val VIDEO_EXTENSION = ".mp4"
+
+        private const val PHOTO = 0
+        private const val VIDEO = 1
 
         fun getOutputDirectory(context: Context): File {
             val appContext = context.applicationContext

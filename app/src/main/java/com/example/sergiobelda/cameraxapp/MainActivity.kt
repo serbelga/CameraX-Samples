@@ -47,9 +47,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var outputDirectory: File
 
-    private lateinit var cameraControl: CameraControl
+    private var cameraControl: CameraControl? = null
 
-    private lateinit var cameraInfo: CameraInfo
+    private var cameraInfo: CameraInfo? = null
 
     private var linearZoom = 0f
 
@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        val cameraSelector = CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
         cameraProviderFuture.addListener({
             imagePreview = Preview.Builder().apply {
                 setTargetAspectRatio(AspectRatio.RATIO_16_9)
@@ -124,9 +125,6 @@ class MainActivity : AppCompatActivity() {
                 setTargetAspectRatio(AspectRatio.RATIO_16_9)
             }.build()
 
-            val cameraSelector =
-                CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
-
             val cameraProvider = cameraProviderFuture.get()
             val camera = cameraProvider.bindToLifecycle(
                 this,
@@ -146,7 +144,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setTorchStateObserver() {
-        cameraInfo.torchState.observe(this, { state ->
+        cameraInfo?.torchState?.observe(this, { state ->
             if (state == TorchState.ON) {
                 binding.cameraTorchButton.setImageDrawable(
                     ContextCompat.getDrawable(
@@ -166,7 +164,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setZoomStateObserver() {
-        cameraInfo.zoomState.observe(this, { state ->
+        cameraInfo?.zoomState?.observe(this, { state ->
             // state.linearZoom
             // state.zoomRatio
             // state.maxZoomRatio
@@ -256,10 +254,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleTorch() {
-        if (cameraInfo.torchState.value == TorchState.ON) {
-            cameraControl.enableTorch(false)
+        if (cameraInfo?.torchState?.value == TorchState.ON) {
+            cameraControl?.enableTorch(false)
         } else {
-            cameraControl.enableTorch(true)
+            cameraControl?.enableTorch(true)
         }
     }
 
@@ -270,14 +268,14 @@ class MainActivity : AppCompatActivity() {
                 if (linearZoom <= 0.9) {
                     linearZoom += 0.1f
                 }
-                cameraControl.setLinearZoom(linearZoom)
+                cameraControl?.setLinearZoom(linearZoom)
                 true
             }
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 if (linearZoom >= 0.1) {
                     linearZoom -= 0.1f
                 }
-                cameraControl.setLinearZoom(linearZoom)
+                cameraControl?.setLinearZoom(linearZoom)
                 true
             }
             else -> super.onKeyDown(keyCode, event)
@@ -299,6 +297,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun analyze(image: ImageProxy) {
+            image.imageInfo.rotationDegrees
             val currentTimestamp = System.currentTimeMillis()
             // Calculate the average luma no more often than every second
             if (currentTimestamp - lastAnalyzedTimestamp >=

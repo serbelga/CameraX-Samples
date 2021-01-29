@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     private var imageCapture: ImageCapture? = null
 
-    private lateinit var videoCapture: VideoCapture
+    private var videoCapture: VideoCapture? = null
 
     private lateinit var outputDirectory: File
 
@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                     VIDEO -> {
                         binding.cameraCaptureButton.setOnClickListener {
                             if (recording) {
-                                videoCapture.stopRecording()
+                                videoCapture?.stopRecording()
                                 it.isSelected = false
                                 recording = false
                             } else {
@@ -238,7 +238,7 @@ class MainActivity : AppCompatActivity() {
             VIDEO_EXTENSION
         )
         val outputFileOptions = VideoCapture.OutputFileOptions.Builder(file).build()
-        videoCapture.startRecording(outputFileOptions, cameraExecutor, object : VideoCapture.OnVideoSavedCallback {
+        videoCapture?.startRecording(outputFileOptions, cameraExecutor, object : VideoCapture.OnVideoSavedCallback {
             override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
                 val msg = "Video capture succeeded: ${file.absolutePath}"
                 binding.previewView.post {

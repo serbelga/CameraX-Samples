@@ -149,14 +149,14 @@ class MainActivity : AppCompatActivity() {
                 binding.cameraTorchButton.setImageDrawable(
                     ContextCompat.getDrawable(
                         this,
-                        R.drawable.ic_flash_on_24dp
+                        R.drawable.ic_flashlight_off_24dp
                     )
                 )
             } else {
                 binding.cameraTorchButton.setImageDrawable(
                     ContextCompat.getDrawable(
                         this,
-                        R.drawable.ic_flash_off_24dp
+                        R.drawable.ic_flashlight_on_24dp
                     )
                 )
             }

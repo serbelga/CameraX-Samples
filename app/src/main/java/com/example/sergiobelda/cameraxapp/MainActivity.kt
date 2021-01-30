@@ -2,56 +2,54 @@ package com.example.sergiobelda.cameraxapp
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
 import android.widget.Toast
-import androidx.camera.core.*
-import androidx.camera.core.impl.VideoCaptureConfig
+import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.AspectRatio
+import androidx.camera.core.CameraControl
+import androidx.camera.core.CameraInfo
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.core.TorchState
+import androidx.camera.core.VideoCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Observer
 import com.example.sergiobelda.cameraxapp.databinding.MainActivityBinding
 import com.google.android.material.tabs.TabLayout
-import com.google.common.util.concurrent.ListenableFuture
 import java.io.File
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-
-private const val REQUEST_CODE_PERMISSIONS = 10
-
-private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
 
 @SuppressLint("RestrictedApi")
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: MainActivityBinding
 
-    private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
+    private val cameraExecutor = Executors.newSingleThreadExecutor()
 
-    private lateinit var imagePreview: Preview
+    private var imagePreview: Preview? = null
 
-    private lateinit var imageAnalysis: ImageAnalysis
+    private var imageAnalysis: ImageAnalysis? = null
 
-    private lateinit var imageCapture: ImageCapture
+    private var imageCapture: ImageCapture? = null
 
-    private lateinit var videoCapture: VideoCapture
-
-    private lateinit var previewView: PreviewView
-
-    private val executor = Executors.newSingleThreadExecutor()
+    private var videoCapture: VideoCapture? = null
 
     private lateinit var outputDirectory: File
 
-    private lateinit var cameraControl: CameraControl
+    private var cameraControl: CameraControl? = null
 
-    private lateinit var cameraInfo: CameraInfo
+    private var cameraInfo: CameraInfo? = null
 
     private var linearZoom = 0f
 
@@ -62,12 +60,8 @@ class MainActivity : AppCompatActivity() {
         binding = MainActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        previewView = binding.previewView
-
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
         if (allPermissionsGranted()) {
-            previewView.post { startCamera() }
+            startCamera()
         } else {
             requestPermissions(
                 REQUIRED_PERMISSIONS,
@@ -75,11 +69,111 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        outputDirectory = getOutputDirectory(this)
+        outputDirectory = getOutputDirectory()
 
         binding.cameraCaptureButton.setOnClickListener {
             takePicture()
         }
+        initCameraModeSelector()
+        binding.cameraTorchButton.setOnClickListener {
+            toggleTorch()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                startCamera()
+            } else {
+                finish()
+            }
+        }
+    }
+
+    /**
+     * Check if all permission specified in the manifest have been granted
+     */
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        val cameraSelector = CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+        cameraProviderFuture.addListener({
+            imagePreview = Preview.Builder().apply {
+                setTargetAspectRatio(AspectRatio.RATIO_16_9)
+                setTargetRotation(binding.previewView.display.rotation)
+            }.build()
+
+            imageAnalysis = ImageAnalysis.Builder().apply {
+                setImageQueueDepth(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            }.build()
+            imageAnalysis?.setAnalyzer(cameraExecutor, LuminosityAnalyzer())
+
+            imageCapture = ImageCapture.Builder().apply {
+                setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                setFlashMode(ImageCapture.FLASH_MODE_AUTO)
+            }.build()
+
+            videoCapture = VideoCapture.Builder().apply {
+                setTargetAspectRatio(AspectRatio.RATIO_16_9)
+            }.build()
+
+            val cameraProvider = cameraProviderFuture.get()
+            val camera = cameraProvider.bindToLifecycle(
+                this,
+                cameraSelector,
+                imagePreview,
+                // imageAnalysis,
+                imageCapture,
+                videoCapture
+            )
+            binding.previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            imagePreview?.setSurfaceProvider(binding.previewView.surfaceProvider)
+            cameraControl = camera.cameraControl
+            cameraInfo = camera.cameraInfo
+            setTorchStateObserver()
+            setZoomStateObserver()
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun setTorchStateObserver() {
+        cameraInfo?.torchState?.observe(this, { state ->
+            if (state == TorchState.ON) {
+                binding.cameraTorchButton.setImageDrawable(
+                    ContextCompat.getDrawable(
+                        this,
+                        R.drawable.ic_flashlight_off_24dp
+                    )
+                )
+            } else {
+                binding.cameraTorchButton.setImageDrawable(
+                    ContextCompat.getDrawable(
+                        this,
+                        R.drawable.ic_flashlight_on_24dp
+                    )
+                )
+            }
+        })
+    }
+
+    private fun setZoomStateObserver() {
+        cameraInfo?.zoomState?.observe(this, { state ->
+            // state.linearZoom
+            // state.zoomRatio
+            // state.maxZoomRatio
+            // state.minZoomRatio
+            Log.d(TAG, "${state.linearZoom}")
+        })
+    }
+
+    private fun initCameraModeSelector() {
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
 
@@ -95,7 +189,7 @@ class MainActivity : AppCompatActivity() {
                     VIDEO -> {
                         binding.cameraCaptureButton.setOnClickListener {
                             if (recording) {
-                                videoCapture.stopRecording()
+                                videoCapture?.stopRecording()
                                 it.isSelected = false
                                 recording = false
                             } else {
@@ -109,40 +203,6 @@ class MainActivity : AppCompatActivity() {
             }
 
         })
-        binding.cameraTorchButton.setOnClickListener {
-            toggleTorch()
-        }
-    }
-
-    private fun recordVideo() {
-        val file = createFile(
-            outputDirectory,
-            FILENAME,
-            VIDEO_EXTENSION
-        )
-        videoCapture.startRecording(file, executor, object : VideoCapture.OnVideoSavedCallback {
-            override fun onVideoSaved(file: File) {
-                val msg = "Video capture succeeded: ${file.absolutePath}"
-                previewView.post {
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
-                }
-            }
-
-            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
-                val msg = "Video capture failed: $message"
-                previewView.post {
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
-                }
-            }
-        })
-    }
-
-    private fun toggleTorch() {
-        if (cameraInfo.torchState.value == TorchState.ON) {
-            cameraControl.enableTorch(false)
-        } else {
-            cameraControl.enableTorch(true)
-        }
     }
 
     private fun takePicture() {
@@ -152,115 +212,53 @@ class MainActivity : AppCompatActivity() {
             PHOTO_EXTENSION
         )
         val outputFileOptions = ImageCapture.OutputFileOptions.Builder(file).build()
-        imageCapture.takePicture(outputFileOptions, executor, object : ImageCapture.OnImageSavedCallback {
+        imageCapture?.takePicture(outputFileOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                 val msg = "Photo capture succeeded: ${file.absolutePath}"
-                previewView.post {
+                binding.previewView.post {
                     Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                 }
             }
 
             override fun onError(exception: ImageCaptureException) {
                 val msg = "Photo capture failed: ${exception.message}"
-                previewView.post {
+                binding.previewView.post {
                     Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                 }
             }
         })
     }
 
-    private fun startCamera() {
-        imagePreview = Preview.Builder().apply {
-            setTargetAspectRatio(AspectRatio.RATIO_16_9)
-            setTargetRotation(previewView.display.rotation)
-        }.build()
+    private fun recordVideo() {
+        val file = createFile(
+            outputDirectory,
+            FILENAME,
+            VIDEO_EXTENSION
+        )
+        val outputFileOptions = VideoCapture.OutputFileOptions.Builder(file).build()
+        videoCapture?.startRecording(outputFileOptions, cameraExecutor, object : VideoCapture.OnVideoSavedCallback {
+            override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+                val msg = "Video capture succeeded: ${file.absolutePath}"
+                binding.previewView.post {
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                }
+            }
 
-        imageAnalysis = ImageAnalysis.Builder().apply {
-            setImageQueueDepth(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        }.build()
-        imageAnalysis.setAnalyzer(executor, LuminosityAnalyzer())
-
-        imageCapture = ImageCapture.Builder().apply {
-            setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            setFlashMode(ImageCapture.FLASH_MODE_AUTO)
-        }.build()
-
-        videoCapture = VideoCaptureConfig.Builder().apply {
-            setTargetAspectRatio(AspectRatio.RATIO_16_9)
-        }.build()
-
-        val cameraSelector =
-            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
-        cameraProviderFuture.addListener(Runnable {
-            val cameraProvider = cameraProviderFuture.get()
-            val camera = cameraProvider.bindToLifecycle(
-                this,
-                cameraSelector,
-                imagePreview,
-                // imageAnalysis,
-                imageCapture,
-                videoCapture
-            )
-            previewView.preferredImplementationMode = PreviewView.ImplementationMode.TEXTURE_VIEW
-            imagePreview.setSurfaceProvider(previewView.createSurfaceProvider(camera.cameraInfo))
-
-            cameraControl = camera.cameraControl
-            cameraInfo = camera.cameraInfo
-            setTorchStateObserver()
-            setZoomStateObserver()
-        }, ContextCompat.getMainExecutor(this))
-    }
-
-    private fun setTorchStateObserver() {
-        cameraInfo.torchState.observe(this, Observer { state ->
-            if (state == TorchState.ON) {
-                binding.cameraTorchButton.setImageDrawable(
-                    ContextCompat.getDrawable(
-                        this,
-                        R.drawable.ic_flash_on_24dp
-                    )
-                )
-            } else {
-                binding.cameraTorchButton.setImageDrawable(
-                    ContextCompat.getDrawable(
-                        this,
-                        R.drawable.ic_flash_off_24dp
-                    )
-                )
+            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+                val msg = "Video capture failed: $message"
+                binding.previewView.post {
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                }
             }
         })
     }
 
-    private fun setZoomStateObserver() {
-        cameraInfo.zoomState.observe(this, Observer { state ->
-            // state.linearZoom
-            // state.zoomRatio
-            // state.maxZoomRatio
-            // state.minZoomRatio
-            Log.d(TAG, "${state.linearZoom}")
-        })
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) {
-                previewView.post { startCamera() }
-            } else {
-                finish()
-            }
+    private fun toggleTorch() {
+        if (cameraInfo?.torchState?.value == TorchState.ON) {
+            cameraControl?.enableTorch(false)
+        } else {
+            cameraControl?.enableTorch(true)
         }
-    }
-
-    /**
-     * Check if all permission specified in the manifest have been granted
-     */
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
     }
 
     // Manage camera Zoom
@@ -270,14 +268,14 @@ class MainActivity : AppCompatActivity() {
                 if (linearZoom <= 0.9) {
                     linearZoom += 0.1f
                 }
-                cameraControl.setLinearZoom(linearZoom)
+                cameraControl?.setLinearZoom(linearZoom)
                 true
             }
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 if (linearZoom >= 0.1) {
                     linearZoom -= 0.1f
                 }
-                cameraControl.setLinearZoom(linearZoom)
+                cameraControl?.setLinearZoom(linearZoom)
                 true
             }
             else -> super.onKeyDown(keyCode, event)
@@ -299,6 +297,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun analyze(image: ImageProxy) {
+            image.imageInfo.rotationDegrees
             val currentTimestamp = System.currentTimeMillis()
             // Calculate the average luma no more often than every second
             if (currentTimestamp - lastAnalyzedTimestamp >=
@@ -322,23 +321,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+    }
+
+    private fun getOutputDirectory(): File {
+        // TODO: 29/01/2021 Remove externalMediaDirs (deprecated)
+        val mediaDir = externalMediaDirs.firstOrNull()?.let {
+            File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
+        }
+        return if (mediaDir != null && mediaDir.exists())
+            mediaDir else filesDir
+    }
+
     companion object {
         private const val TAG = "MainActivity"
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val PHOTO_EXTENSION = ".jpg"
         private const val VIDEO_EXTENSION = ".mp4"
 
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+
         private const val PHOTO = 0
         private const val VIDEO = 1
-
-        fun getOutputDirectory(context: Context): File {
-            val appContext = context.applicationContext
-            val mediaDir = context.externalMediaDirs.firstOrNull()?.let {
-                File(it, appContext.resources.getString(R.string.app_name)).apply { mkdirs() }
-            }
-            return if (mediaDir != null && mediaDir.exists())
-                mediaDir else appContext.filesDir
-        }
 
         fun createFile(baseFolder: File, format: String, extension: String) =
             File(

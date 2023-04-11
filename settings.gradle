@@ -1,0 +1,3 @@
+include ':camerax-app'
+include ':camerax-mlkit-app'
+rootProject.name='CameraXApp'

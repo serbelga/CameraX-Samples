@@ -144,7 +144,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setTorchStateObserver() {
-        cameraInfo?.torchState?.observe(this, { state ->
+        cameraInfo?.torchState?.observe(this) { state ->
             if (state == TorchState.ON) {
                 binding.cameraTorchButton.setImageDrawable(
                     ContextCompat.getDrawable(
@@ -160,17 +160,17 @@ class MainActivity : AppCompatActivity() {
                     )
                 )
             }
-        })
+        }
     }
 
     private fun setZoomStateObserver() {
-        cameraInfo?.zoomState?.observe(this, { state ->
+        cameraInfo?.zoomState?.observe(this) { state ->
             // state.linearZoom
             // state.zoomRatio
             // state.maxZoomRatio
             // state.minZoomRatio
             Log.d(TAG, "${state.linearZoom}")
-        })
+        }
     }
 
     private fun initCameraModeSelector() {

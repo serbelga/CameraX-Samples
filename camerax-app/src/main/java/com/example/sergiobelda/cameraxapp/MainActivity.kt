@@ -236,21 +236,28 @@ class MainActivity : AppCompatActivity() {
             VIDEO_EXTENSION
         )
         val outputFileOptions = VideoCapture.OutputFileOptions.Builder(file).build()
-        videoCapture?.startRecording(outputFileOptions, cameraExecutor, object : VideoCapture.OnVideoSavedCallback {
-            override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
-                val msg = "Video capture succeeded: ${file.absolutePath}"
-                binding.previewView.post {
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            videoCapture?.startRecording(outputFileOptions, cameraExecutor, object : VideoCapture.OnVideoSavedCallback {
+                override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+                    val msg = "Video capture succeeded: ${file.absolutePath}"
+                    binding.previewView.post {
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                    }
                 }
-            }
 
-            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
-                val msg = "Video capture failed: $message"
-                binding.previewView.post {
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+                    val msg = "Video capture failed: $message"
+                    binding.previewView.post {
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                    }
                 }
-            }
-        })
+            })
+        }
+
     }
 
     private fun toggleTorch() {

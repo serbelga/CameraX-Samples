@@ -20,7 +20,5 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Build camerax-app with Gradle
-      run: cd camerax-app && ./gradlew build
-    - name: Build camerax-mlkit-app with Gradle
-      run: cd camerax-mlkit-app && ./gradlew build
+    - name: Build with Gradle
+      run: ./gradlew build

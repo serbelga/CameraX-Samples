@@ -10,7 +10,7 @@ constraintlayout = "2.1.4"
 core-ktx = "1.10.0"
 espresso-core = "3.5.1"
 junit = "4.13.2"
-material = "1.8.0"
+material = "1.9.0"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }

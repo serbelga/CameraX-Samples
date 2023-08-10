@@ -1,4 +1,4 @@
-package com.example.sergiobelda.cameraxapp
+package dev.sergiobelda.samples.cameraxapp
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -22,8 +22,8 @@ import androidx.camera.core.VideoCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import com.example.sergiobelda.cameraxapp.databinding.MainActivityBinding
 import com.google.android.material.tabs.TabLayout
+import dev.sergiobelda.samples.cameraxapp.databinding.MainActivityBinding
 import java.io.File
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
@@ -108,7 +108,6 @@ class MainActivity : AppCompatActivity() {
         cameraProviderFuture.addListener({
             imagePreview = Preview.Builder().apply {
                 setTargetAspectRatio(AspectRatio.RATIO_16_9)
-                setTargetRotation(binding.previewView.display.rotation)
             }.build()
 
             imageAnalysis = ImageAnalysis.Builder().apply {

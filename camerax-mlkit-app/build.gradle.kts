@@ -1,16 +1,17 @@
 plugins {
-    id("com.android.application")
+    alias(libs.plugins.androidApplication)
     kotlin("android")
     kotlin("kapt")
 }
 
 android {
-    compileSdk = 33
+    namespace = "dev.sergiobelda.samples.cameraxmlkit"
 
+    compileSdk = 34
     defaultConfig {
-        applicationId = "com.sergiobelda.cameraxmlkit"
+        applicationId = "dev.sergiobelda.samples.cameraxmlkit"
         minSdk = 24
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -32,7 +33,6 @@ android {
     buildFeatures {
         viewBinding = true
     }
-    namespace = "com.sergiobelda.cameraxmlkit"
 }
 
 dependencies {

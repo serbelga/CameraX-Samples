@@ -1,4 +1,4 @@
-package com.sergiobelda.cameraxmlkit
+package dev.sergiobelda.samples.cameraxmlkit
 
 import android.util.Log
 import androidx.camera.core.ImageAnalysis

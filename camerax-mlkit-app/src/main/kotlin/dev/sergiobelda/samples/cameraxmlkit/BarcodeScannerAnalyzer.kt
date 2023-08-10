@@ -1,4 +1,4 @@
-package com.sergiobelda.cameraxmlkit
+package dev.sergiobelda.samples.cameraxmlkit
 
 import android.annotation.SuppressLint
 import android.util.Log

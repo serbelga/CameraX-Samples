@@ -1,15 +1,17 @@
 plugins {
-    id("com.android.application")
+    alias(libs.plugins.androidApplication)
     kotlin("android")
     kotlin("kapt")
 }
 
 android {
-    compileSdk = 33
+    namespace = "dev.sergiobelda.samples.cameraxapp"
+
+    compileSdk = 34
     defaultConfig {
-        applicationId = "com.example.sergiobelda.cameraxapp"
+        applicationId = "dev.sergiobelda.samples.cameraxapp"
         minSdk = 24
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -30,7 +32,6 @@ android {
     buildFeatures {
         viewBinding = true
     }
-    namespace = "com.example.sergiobelda.cameraxapp"
 }
 
 dependencies {

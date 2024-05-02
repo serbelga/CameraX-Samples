@@ -12,7 +12,7 @@ core-ktx = "1.13.1"
 espresso-core = "3.5.1"
 junit = "4.13.2"
 kotlin = "1.9.23"
-material = "1.11.0"
+material = "1.12.0"
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }

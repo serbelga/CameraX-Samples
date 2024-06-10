@@ -1,5 +1,5 @@
 [versions]
-androidGradlePlugin = "8.4.1"
+androidGradlePlugin = "8.4.2"
 androidx-junit = "1.1.5"
 appcompat = "1.7.0"
 barcode-scanning = "17.2.0"

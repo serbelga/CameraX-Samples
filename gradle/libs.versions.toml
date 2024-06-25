@@ -1,6 +1,6 @@
 [versions]
 androidGradlePlugin = "8.5.0"
-androidx-junit = "1.1.5"
+androidx-junit = "1.2.0"
 appcompat = "1.7.0"
 barcode-scanning = "17.2.0"
 camera-core = "1.2.3"

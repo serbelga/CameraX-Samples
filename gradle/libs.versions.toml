@@ -2,7 +2,7 @@
 androidGradlePlugin = "8.5.1"
 androidx-junit = "1.2.1"
 appcompat = "1.7.0"
-barcode-scanning = "17.2.0"
+barcode-scanning = "17.3.0"
 camera-core = "1.2.3"
 camera-extensions = "1.2.3"
 camera-lifecycle = "1.2.3"

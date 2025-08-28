@@ -7,11 +7,11 @@ plugins {
 android {
     namespace = "dev.sergiobelda.samples.cameraxmlkit"
 
-    compileSdk = 34
+    compileSdk = 36
     defaultConfig {
         applicationId = "dev.sergiobelda.samples.cameraxmlkit"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 

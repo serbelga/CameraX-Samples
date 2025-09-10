@@ -11,7 +11,7 @@ constraintlayout = "2.2.1"
 core-ktx = "1.17.0"
 espresso-core = "3.7.0"
 junit = "4.13.2"
-kotlin = "2.2.10"
+kotlin = "2.2.20"
 material = "1.13.0"
 
 [libraries]
